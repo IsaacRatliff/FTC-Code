@@ -1,4 +1,4 @@
-package workspace_;
+package workspace;
 
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.hardware.HardwareMap;
@@ -13,8 +13,8 @@ public class ParkFarLeft extends AutoOp {
     public void runOpMode(){
         initialize(hardwareMap, telemetry);
         waitForStart();
-        forward(1.8);
+        forward(1);
         left(1);
-        forward(2.1);
+        forward(1.5);
     }
 }
