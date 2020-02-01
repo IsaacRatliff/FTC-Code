@@ -1,6 +1,12 @@
-package workspace_;
+package workspace;
 
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
+import org.firstinspires.ftc.robotcore.external.navigation.AxesReference;
+import org.firstinspires.ftc.robotcore.external.navigation.AxesOrder;
+import org.firstinspires.ftc.robotcore.external.navigation.Orientation;
+import com.qualcomm.hardware.bosch.BNO055IMU;
+import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
+import com.qualcomm.robotcore.hardware.Gyroscope;
 import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.util.Hardware;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
@@ -20,13 +26,21 @@ public abstract class AutoOp extends LinearOpMode {
     protected Servo finger2 = null;
     protected Servo claw = null;
     
+    protected BNO055IMU imu = null;
+    private double zero_heading = 0.0;
+    private Orientation angles = null;
+    
     private ElapsedTime runtime = new ElapsedTime();
     private Telemetry telemetry_ = null;
     
-    private double speed = 0.55*0.7/2;
-    private double turn90 = 0.85/2;
+    private double speed = 0.55*1.4;
+    private double strafe_spd = 1.2;
+    private double turn90 = 0.73;//73, 75
     private double armSpd = 0.5;
-    protected double wheelPower = 0.5;
+    private double armPower = 0.3;
+    private double armStatic = 0.02;
+    protected double wheelPower = 0.75;
+    private double margin = 1;
     
     public void initialize(HardwareMap hardwareMap, Telemetry telemetry, boolean has_arm, boolean has_claw){
         leftfront = hardwareMap.get(DcMotor.class, "leftDrive_0");
@@ -36,19 +50,44 @@ public abstract class AutoOp extends LinearOpMode {
         modelX = hardwareMap.get(DcMotor.class, "ModelX");
         finger1 = hardwareMap.get(Servo.class, "finger1");
         finger2 = hardwareMap.get(Servo.class, "finger2");
-        leftfront.setDirection(DcMotor.Direction.FORWARD);
-        leftback.setDirection(DcMotor.Direction.FORWARD);
-        rightfront.setDirection(DcMotor.Direction.REVERSE);
-        rightback.setDirection(DcMotor.Direction.REVERSE);
+        leftfront.setDirection(DcMotor.Direction.REVERSE);
+        leftback.setDirection(DcMotor.Direction.REVERSE);
+        rightfront.setDirection(DcMotor.Direction.FORWARD);
+        rightback.setDirection(DcMotor.Direction.FORWARD);
         modelX.setDirection(DcMotor.Direction.FORWARD);
         telemetry_ = telemetry;
         if(has_arm){
             arm = hardwareMap.get(DcMotor.class, "arm");
-            arm.setDirection(DcMotor.Direction.FORWARD);
+            arm.setDirection(DcMotor.Direction.REVERSE);
         }
         if(has_claw){
             claw = hardwareMap.get(Servo.class, "claw");
         }
+        BNO055IMU.Parameters params = new BNO055IMU.Parameters();
+        params.mode = BNO055IMU.SensorMode.IMU;
+        params.angleUnit = BNO055IMU.AngleUnit.DEGREES;
+        params.accelUnit = BNO055IMU.AccelUnit.METERS_PERSEC_PERSEC;
+        params.loggingEnabled = false;
+        imu = hardwareMap.get(BNO055IMU.class, "imu");
+        imu.initialize(params);
+        angles = imu.getAngularOrientation(AxesReference.INTRINSIC, AxesOrder.ZYX, AngleUnit.DEGREES);
+        zero_heading = angles.firstAngle;
+    }
+    
+    public double getAngle(){
+        angles = imu.getAngularOrientation(AxesReference.INTRINSIC, AxesOrder.ZYX, AngleUnit.DEGREES);
+        return (angles.firstAngle - zero_heading + 360 + margin) % 360.0;
+    }
+    public double getNegAngle(){
+        angles = imu.getAngularOrientation(AxesReference.INTRINSIC, AxesOrder.ZYX, AngleUnit.DEGREES);
+        return (angles.firstAngle - zero_heading - 720 - margin) % 360.0;
+    }
+    
+    public void zeroHeading(){
+        //double off = getAngle();
+        //zero_heading += off;
+        angles = imu.getAngularOrientation(AxesReference.INTRINSIC, AxesOrder.ZYX, AngleUnit.DEGREES);
+        zero_heading = angles.firstAngle;
     }
     
     public void initialize(HardwareMap hardwareMap, Telemetry telemetry, boolean has_arm){
@@ -65,8 +104,8 @@ public abstract class AutoOp extends LinearOpMode {
     }
     
     public void rightWheels(double spd){
-        rightfront.setPower(spd);
-        rightback.setPower(spd);
+        rightfront.setPower(spd*0.95);
+        rightback.setPower(spd*0.85);
     }
     
     public void driveSpd(double spd){
@@ -88,14 +127,32 @@ public abstract class AutoOp extends LinearOpMode {
         leftfront.setPower(-spd);
         leftback.setPower(spd);
         rightfront.setPower(spd);
-        rightback.setPower(-spd);
+        rightback.setPower(-spd*0.8);
     }
     
     public void strafeRightSpd(double spd){
         leftfront.setPower(spd);
         leftback.setPower(-spd);
         rightfront.setPower(-spd);
-        rightback.setPower(spd);
+        rightback.setPower(spd*0.8);
+    }
+    
+    public void strafeLeft(double tiles){
+        strafeLeftSpd(wheelPower);
+        runtime.reset();
+        while(opModeIsActive() && (runtime.seconds() < tiles * strafe_spd / wheelPower)){
+            telemetry_.addData("Path", "Strafing Left: %2.5f S Elapsed", runtime.seconds());
+        }
+        stopWheels();
+    }
+    
+    public void strafeRight(double tiles){
+        strafeRightSpd(wheelPower);
+        runtime.reset();
+        while(opModeIsActive() && (runtime.seconds() < tiles * strafe_spd / wheelPower)){
+            telemetry_.addData("Path", "Strafing Right: %2.5f S Elapsed", runtime.seconds());
+        }
+        stopWheels();
     }
     
     public void forward(double tiles){
@@ -118,57 +175,141 @@ public abstract class AutoOp extends LinearOpMode {
         }
         stopWheels();
     }
-    public void left(double quarters){
+    public void left_time(double quarters){
         leftWheels(-wheelPower);
         rightWheels(wheelPower);
         runtime.reset();
         while(opModeIsActive() && (runtime.seconds() < quarters * turn90 / wheelPower)){
-            telemetry_.addData("Path", "Turning Right: %2.5f S Elapsed", runtime.seconds());
+            telemetry_.addData("Path", "Turning Left: %2.5f S Elapsed", runtime.seconds());
+            telemetry_.update();
+        }
+        stopWheels();
+    }
+    public double left_gyro(double quarters){
+        if(quarters >= 2){
+            quarters -= left_gyro(quarters-2);
+        }
+        double a = 0.0;
+        /*runtime.reset();
+        while(opModeIsActive() && runtime.seconds() < 0.5){
+            telemetry_.addData("Path", "Turning Left");
+            telemetry_.update();
+        }*/
+        zeroHeading();
+        leftWheels(-wheelPower*0.4);
+        rightWheels(wheelPower*0.4);
+        runtime.reset();
+        while(opModeIsActive() && ((a=getAngle()) < 90*quarters+margin)){
+            telemetry_.addData("Path", "Turning Left: %2.5f S Elapsed, %2.3f deg", runtime.seconds(), a);
+            telemetry_.update();
+        }
+        /*leftWheels(0);
+        rightWheels(0);
+        while(opModeIsActive() && runtime.seconds() < 1.5){
+            telemetry_.addData("Path", "Turning Left: %2.5f S Elapsed, %2.3f deg", runtime.seconds(), a);
+            telemetry_.update();
+        }*/
+        leftWheels(wheelPower*0.2);
+        rightWheels(-wheelPower*0.2);
+        while(opModeIsActive() && ((a=getAngle()) > 90*quarters+margin)){
+            telemetry_.addData("Path", "Turning Left: %2.5f S Elapsed, %2.3f deg", runtime.seconds(), a);
+            telemetry_.update();
+        }
+        stopWheels();
+        runtime.reset();
+        /*while(opModeIsActive() && runtime.seconds() < 2.0){
+            telemetry_.addData("Path", "Turning Left: %2.3f deg", a);
+            telemetry_.update();
+        }*/
+        return quarters;
+    }
+    
+    public void left(double quarters){
+        left_gyro(quarters);
+    }
+    
+    public void right_gyro(double quarters){
+        if(quarters >= 4){
+            right(quarters-2);
+            quarters -= 2;
+        }
+        double a = 0.0;
+        /*runtime.reset();
+        while(opModeIsActive() && runtime.seconds() < 0.75){
+            telemetry_.addData("Turn", "Turning Right");
+            telemetry_.update();
+        }*/
+        zeroHeading();
+        leftWheels(wheelPower*0.4);
+        rightWheels(-wheelPower*0.4);
+        runtime.reset();
+        while(opModeIsActive() && ((a=getNegAngle()) > -90*quarters-margin)){
+            telemetry_.addData("Path", "Turning Right: %2.5f S Elapsed, %2.3f deg", runtime.seconds(), a);
+            telemetry_.update();
+        }
+        /*leftWheels(0);
+        rightWheels(0);
+        while(opModeIsActive() && runtime.seconds() < 1.5){
+            telemetry_.addData("Path", "Turning Right: %2.5f S Elapsed, %2.3f deg", runtime.seconds(), a);
+            telemetry_.update();
+        }*/
+        leftWheels(-wheelPower*0.2);
+        rightWheels(wheelPower*0.2);
+        while(opModeIsActive() && ((a=getNegAngle()) < -90*quarters-margin)){
+            telemetry_.addData("Path", "Turning Right: %2.5f S Elapsed, %2.3f deg", runtime.seconds(), a);
+            telemetry_.update();
+        }
+        stopWheels();
+        runtime.reset();
+        /*while(opModeIsActive() && runtime.seconds() < 2.0){
+            telemetry_.addData("Path", "Turning Left: %2.3f deg", a);
+            telemetry_.update();
+        }*/
+    }
+    public void right_time(double quarters){
+        leftWheels(wheelPower);
+        rightWheels(-wheelPower);
+        runtime.reset();
+        while(opModeIsActive() && (runtime.seconds() < quarters * turn90 / wheelPower)){
+            telemetry_.addData("Path", "Turning Right: %2.5f S Elapsed, %2.3f deg", runtime.seconds(), getAngle());
             telemetry_.update();
         }
         stopWheels();
     }
     public void right(double quarters){
-        leftWheels(wheelPower);
-        rightWheels(-wheelPower);
-        runtime.reset();
-        while(opModeIsActive() && (runtime.seconds() < quarters * turn90 / wheelPower)){
-            telemetry_.addData("Path", "Turning Right: %2.5f S Elapsed", runtime.seconds());
-            telemetry_.update();
-        }
-        stopWheels();
+        right_gyro(quarters);
     }
     public void armUp(double pct){
-        arm.setPower(0.4);
+        arm.setPower(armStatic+armPower);
         runtime.reset();
         while(opModeIsActive() && (runtime.seconds() < pct * armSpd)){
             telemetry_.addData("Path", "Raising arm: %2.5f S Elapsed", runtime.seconds());
             telemetry_.update();
         }
-        arm.setPower(0.15);
+        arm.setPower(armStatic);
     }
     public void armUp(){
         armUp(1.0);
     }
     public void armDown(double pct){
-        arm.setPower(-0.1);
+        arm.setPower(armStatic-armPower);
         runtime.reset();
         while(opModeIsActive() && (runtime.seconds() < pct * armSpd)){
             telemetry_.addData("Path", "Lowering arm: %2.5f S Elapsed", runtime.seconds());
             telemetry_.update();
         }
-        arm.setPower(0.15);
+        arm.setPower(armStatic);
     }
     public void armDown(){
         armDown(1.0);
     }
     public void fingerUp(){
-        finger1.setPosition(1.0);
-        finger2.setPosition(0.0);
-    }
-    public void fingerDown(){
         finger1.setPosition(0.0);
         finger2.setPosition(1.0);
+    }
+    public void fingerDown(){
+        finger1.setPosition(0.9);
+        finger2.setPosition(0.1);
     }
     public void openClaw(){
         claw.setPosition(0.0);
@@ -201,6 +342,7 @@ public abstract class AutoOp extends LinearOpMode {
             telemetry_.update();
         }
     }
+    
     @Deprecated
     public void stopMotion(){
         stopWheels();
