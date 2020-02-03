@@ -353,10 +353,10 @@ public abstract class AutoOp extends LinearOpMode {
         finger2.setPosition(0.1);
     }
     public void openClaw(){
-        claw.setPosition(0.0);
+        claw.setPosition(1.0);
     }
     public void closeClaw(){
-        claw.setPosition(1.0);
+        claw.setPosition(0.3);
     }
     public void modelXUp(){
         modelX.setPower(0.5);
