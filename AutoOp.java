@@ -41,6 +41,7 @@ public abstract class AutoOp extends LinearOpMode {
     private double armStatic = 0.02;
     protected double wheelPower = 0.75;
     private double margin = 1;
+    private double turningCorrection = 0.001;
     
     public void initialize(HardwareMap hardwareMap, Telemetry telemetry, boolean has_arm, boolean has_claw){
         leftfront = hardwareMap.get(DcMotor.class, "leftDrive_0");
@@ -81,6 +82,10 @@ public abstract class AutoOp extends LinearOpMode {
     public double getNegAngle(){
         angles = imu.getAngularOrientation(AxesReference.INTRINSIC, AxesOrder.ZYX, AngleUnit.DEGREES);
         return (angles.firstAngle - zero_heading - 720 - margin) % 360.0;
+    }
+    public double getSmAngle(){
+        angles = imu.getAngularOrientation(AxesReference.INTRINSIC, AxesOrder.ZYX, AngleUnit.DEGREES);
+        return (angles.firstAngle - zero_heading + 360) % 360.0 - 180.0;
     }
     
     public void zeroHeading(){
@@ -123,34 +128,44 @@ public abstract class AutoOp extends LinearOpMode {
         rightWheels(spd);
     }
     
+    public void strafeLeftSpd(double spd, double corr){
+        leftfront.setPower(-spd+corr);
+        leftback.setPower(spd+corr);
+        rightfront.setPower(spd-corr);
+        rightback.setPower(-spd-corr);
+    }
     public void strafeLeftSpd(double spd){
-        leftfront.setPower(-spd);
-        leftback.setPower(spd);
-        rightfront.setPower(spd);
-        rightback.setPower(-spd*0.8);
+        strafeLeftSpd(spd, 0.0);
     }
     
+    public void strafeRightSpd(double spd, double corr){
+        leftfront.setPower(spd+corr);
+        leftback.setPower(-spd+corr);
+        rightfront.setPower(-spd-corr);
+        rightback.setPower(spd-corr);
+    }
     public void strafeRightSpd(double spd){
-        leftfront.setPower(spd);
-        leftback.setPower(-spd);
-        rightfront.setPower(-spd);
-        rightback.setPower(spd*0.8);
+        strafeRightSpd(spdl, 0.0);
     }
     
     public void strafeLeft(double tiles){
+        zeroHeading();
         strafeLeftSpd(wheelPower);
         runtime.reset();
         while(opModeIsActive() && (runtime.seconds() < tiles * strafe_spd / wheelPower)){
             telemetry_.addData("Path", "Strafing Left: %2.5f S Elapsed", runtime.seconds());
+            strafeLeftSpd(wheelPower, getSmAngle()*turningCorrection);
         }
         stopWheels();
     }
     
     public void strafeRight(double tiles){
+        zeroHeading();
         strafeRightSpd(wheelPower);
         runtime.reset();
         while(opModeIsActive() && (runtime.seconds() < tiles * strafe_spd / wheelPower)){
             telemetry_.addData("Path", "Strafing Right: %2.5f S Elapsed", runtime.seconds());
+            strafeRightSpd(wheelPower, getSmAngle()*turningCorrection);
         }
         stopWheels();
     }
