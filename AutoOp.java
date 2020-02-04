@@ -37,11 +37,11 @@ public abstract class AutoOp extends LinearOpMode {
     private double strafe_spd = 1.2;
     private double turn90 = 0.73;//73, 75
     private double armSpd = 0.5;
-    private double armPower = 0.3;
-    private double armStatic = 0.02;
-    protected double wheelPower = 0.75;
+    private double armPower = 0.25;
+    private double armStatic = 0.3;
+    protected double wheelPower = 0.8;
     private double margin = 1;
-    private double ticksPerTile = 1120/4/3.141592653589793238462643383279502884*24; // 1120 ticks/rev * 1/4pi rev/in * 24 in/tile
+    private double ticksPerTile = 1120/4/3.141592653589793238462643383279502884*24*(4.0/3.0); // 1120 ticks/rev * 1/4pi rev/in * 24 in/tile * gear_ratio
     private double strafeTraction = 0.9;
     private double turningCorrection = 0.001;
     
@@ -90,9 +90,8 @@ public abstract class AutoOp extends LinearOpMode {
         return (angles.firstAngle - zero_heading + 360) % 360.0 - 180.0;
     }
     
+    @Deprecated
     public void zeroHeading(){
-        //double off = getAngle();
-        //zero_heading += off;
         angles = imu.getAngularOrientation(AxesReference.INTRINSIC, AxesOrder.ZYX, AngleUnit.DEGREES);
         zero_heading = angles.firstAngle;
     }
@@ -147,10 +146,10 @@ public abstract class AutoOp extends LinearOpMode {
         rightback.setPower(spd-corr);
     }
     public void strafeRightSpd(double spd){
-        strafeRightSpd(spdl, 0.0);
+        strafeRightSpd(spd, 0.0);
     }
     
-    public void strafeLeft(double tiles){
+    public void strafeLeft_time(double tiles){
         zeroHeading();
         strafeLeftSpd(wheelPower);
         runtime.reset();
@@ -160,8 +159,46 @@ public abstract class AutoOp extends LinearOpMode {
         }
         stopWheels();
     }
+    public void strafeLeft_enc(double tiles){
+        leftfront.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        leftback.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        rightfront.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        rightback.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        leftfront.setTargetPosition((int) (-tiles*ticksPerTile));
+        leftback.setTargetPosition((int) (tiles*ticksPerTile));
+        rightfront.setTargetPosition((int) (tiles*ticksPerTile));
+        rightback.setTargetPosition((int) (-tiles*ticksPerTile));
+        leftfront.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        leftback.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        rightfront.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        rightback.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        leftfront.setPower(wheelPower);
+        leftback.setPower(wheelPower);
+        rightfront.setPower(wheelPower);
+        rightback.setPower(wheelPower);
+        /*while(opModeIsActive() && leftback.isBusy()){  // If the front two wheels are still running, the robot will continue straight
+            telemetry_.addData("Path", "Forward: %s lf, %s rf, %s lb", leftfront.getCurrentPosition(), rightfront.getCurrentPosition(), leftback.getCurrentPosition());
+            telemetry_.update();
+        }*/
+        //rightback.setPower(0.0);
+        while(opModeIsActive() && (leftfront.isBusy() || rightfront.isBusy() || leftback.isBusy() || rightback.isBusy())){
+            telemetry_.addData("Path", "Forward: %s lf, %s rf, %s lb, %s rb", leftfront.getCurrentPosition(), rightfront.getCurrentPosition(), leftback.getCurrentPosition(), rightback.getCurrentPosition());
+            telemetry_.update();
+        }
+        leftfront.setPower(0.0);
+        leftback.setPower(0.0);
+        rightfront.setPower(0.0);
+        rightback.setPower(0.0);
+        leftfront.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        leftback.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        rightfront.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        rightback.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+    }
+    public void strafeLeft(double tiles){
+        strafeLeft_enc(tiles);
+    }
     
-    public void strafeRight(double tiles){
+    public void strafeRight_time(double tiles){
         zeroHeading();
         strafeRightSpd(wheelPower);
         runtime.reset();
@@ -170,6 +207,39 @@ public abstract class AutoOp extends LinearOpMode {
             strafeRightSpd(wheelPower, getSmAngle()*turningCorrection);
         }
         stopWheels();
+    }
+    public void strafeRight_enc(double tiles){
+        leftfront.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        leftback.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        rightfront.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        rightback.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        leftfront.setTargetPosition((int) (tiles*ticksPerTile));
+        leftback.setTargetPosition((int) (-tiles*ticksPerTile));
+        rightfront.setTargetPosition((int) (-tiles*ticksPerTile));
+        rightback.setTargetPosition((int) (tiles*ticksPerTile));
+        leftfront.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        leftback.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        rightfront.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        rightback.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        leftfront.setPower(wheelPower);
+        leftback.setPower(wheelPower);
+        rightfront.setPower(wheelPower);
+        rightback.setPower(wheelPower);
+        while(opModeIsActive() && (leftfront.isBusy() || rightfront.isBusy() || leftback.isBusy() || rightback.isBusy())){
+            telemetry_.addData("Path", "Forward: %s lf, %s rf, %s lb, %s rb", leftfront.getCurrentPosition(), rightfront.getCurrentPosition(), leftback.getCurrentPosition(), rightback.getCurrentPosition());
+            telemetry_.update();
+        }
+        leftfront.setPower(0.0);
+        leftback.setPower(0.0);
+        rightfront.setPower(0.0);
+        rightback.setPower(0.0);
+        leftfront.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        leftback.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        rightfront.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        rightback.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+    }
+    public void strafeRight(double tiles){
+        strafeRight_enc(tiles);
     }
     
     public void forward_time(double tiles){
@@ -186,27 +256,41 @@ public abstract class AutoOp extends LinearOpMode {
         leftfront.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         leftback.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         rightfront.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        leftfront.setTargetPosition(tiles*ticksPerTile);
-        leftback.setTargetPosition(tiles*ticksPerTile);
-        rightfront.setTargetPosition(tiles*ticksPerTile);
+        rightback.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        leftfront.setTargetPosition((int) (tiles*ticksPerTile));
+        leftback.setTargetPosition((int) (tiles*ticksPerTile));
+        rightfront.setTargetPosition((int) (tiles*ticksPerTile));
+        rightback.setTargetPosition((int) (tiles*ticksPerTile));
+        leftfront.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        leftback.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        rightfront.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        rightback.setMode(DcMotor.RunMode.RUN_TO_POSITION);
         leftfront.setPower(wheelPower);
         leftback.setPower(wheelPower);
         rightfront.setPower(wheelPower);
         rightback.setPower(wheelPower);
-        while(opModeIsActive() && leftback.isBusy()){  // If the front two wheels are still running, the robot will continue straight
+        /*while(opModeIsActive() && leftback.isBusy()){  // If the front two wheels are still running, the robot will continue straight
             telemetry_.addData("Path", "Forward: %s lf, %s rf, %s lb", leftfront.getCurrentPosition(), rightfront.getCurrentPosition(), leftback.getCurrentPosition());
             telemetry_.update();
+        }*/
+        //rightback.setPower(0.0);
+        while(opModeIsActive() && (leftfront.isBusy() || rightfront.isBusy() || leftback.isBusy() || rightback.isBusy())){
+            telemetry_.addData("Path", "Forward: %s lf, %s rf, %s lb, %s rb", leftfront.getCurrentPosition(), rightfront.getCurrentPosition(), leftback.getCurrentPosition(), rightback.getCurrentPosition());
+            telemetry_.update();
         }
+        leftfront.setPower(0.0);
+        leftback.setPower(0.0);
+        rightfront.setPower(0.0);
         rightback.setPower(0.0);
-        while(opModeIsActive() && (leftfront.isBusy() || rightfront.isBusy())){
-            telemetry_.addData("Path", "Forward: %s lf, %s rf, %s lb", leftfront.getCurrentPosition(), rightfront.getCurrentPosition(), leftback.getCurrentPosition());
-            telemetry_.update();
-        }
+        leftfront.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        leftback.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        rightfront.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        rightback.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
     }
     public void forward(double tiles){
         forward_enc(tiles);
     }
-    public void backward(double tiles){
+    public void backward_time(double tiles){
         leftWheels(-wheelPower);
         rightWheels(-wheelPower);
         runtime.reset();
@@ -215,6 +299,39 @@ public abstract class AutoOp extends LinearOpMode {
             telemetry_.update();
         }
         stopWheels();
+    }
+    public void backward_enc(double tiles){
+        leftfront.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        leftback.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        rightfront.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        rightback.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        leftfront.setTargetPosition((int) (-tiles*ticksPerTile));
+        leftback.setTargetPosition((int) (-tiles*ticksPerTile));
+        rightfront.setTargetPosition((int) (-tiles*ticksPerTile));
+        rightback.setTargetPosition((int) (-tiles*ticksPerTile));
+        leftfront.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        leftback.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        rightfront.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        rightback.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        leftfront.setPower(wheelPower);
+        leftback.setPower(wheelPower);
+        rightfront.setPower(wheelPower);
+        rightback.setPower(wheelPower);
+        while(opModeIsActive() && (leftfront.isBusy() || rightfront.isBusy() || leftback.isBusy() || rightback.isBusy())){
+            telemetry_.addData("Path", "Forward: %s lf, %s rf, %s lb, %s rb", leftfront.getCurrentPosition(), rightfront.getCurrentPosition(), leftback.getCurrentPosition(), rightback.getCurrentPosition());
+            telemetry_.update();
+        }
+        leftfront.setPower(0.0);
+        leftback.setPower(0.0);
+        rightfront.setPower(0.0);
+        rightback.setPower(0.0);
+        leftfront.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        leftback.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        rightfront.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        rightback.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+    }
+    public void backward(double tiles){
+        backward_enc(tiles);
     }
     public void left_time(double quarters){
         leftWheels(-wheelPower);
@@ -231,25 +348,14 @@ public abstract class AutoOp extends LinearOpMode {
             quarters -= left_gyro(quarters-2);
         }
         double a = 0.0;
-        /*runtime.reset();
-        while(opModeIsActive() && runtime.seconds() < 0.5){
-            telemetry_.addData("Path", "Turning Left");
-            telemetry_.update();
-        }*/
-        zeroHeading();
-        leftWheels(-wheelPower*0.4);
-        rightWheels(wheelPower*0.4);
+        //zeroHeading();
+        leftWheels(-wheelPower);
+        rightWheels(wheelPower);
         runtime.reset();
         while(opModeIsActive() && ((a=getAngle()) < 90*quarters+margin)){
             telemetry_.addData("Path", "Turning Left: %2.5f S Elapsed, %2.3f deg", runtime.seconds(), a);
             telemetry_.update();
         }
-        /*leftWheels(0);
-        rightWheels(0);
-        while(opModeIsActive() && runtime.seconds() < 1.5){
-            telemetry_.addData("Path", "Turning Left: %2.5f S Elapsed, %2.3f deg", runtime.seconds(), a);
-            telemetry_.update();
-        }*/
         leftWheels(wheelPower*0.2);
         rightWheels(-wheelPower*0.2);
         while(opModeIsActive() && ((a=getAngle()) > 90*quarters+margin)){
@@ -258,12 +364,10 @@ public abstract class AutoOp extends LinearOpMode {
         }
         stopWheels();
         runtime.reset();
-        /*while(opModeIsActive() && runtime.seconds() < 2.0){
-            telemetry_.addData("Path", "Turning Left: %2.3f deg", a);
-            telemetry_.update();
-        }*/
+        zero_heading = (zero_heading + 90.0) % 360.0;
         return quarters;
     }
+    
     
     public void left(double quarters){
         left_gyro(quarters);
@@ -275,25 +379,14 @@ public abstract class AutoOp extends LinearOpMode {
             quarters -= 2;
         }
         double a = 0.0;
-        /*runtime.reset();
-        while(opModeIsActive() && runtime.seconds() < 0.75){
-            telemetry_.addData("Turn", "Turning Right");
-            telemetry_.update();
-        }*/
-        zeroHeading();
-        leftWheels(wheelPower*0.4);
-        rightWheels(-wheelPower*0.4);
+        //zeroHeading();
+        leftWheels(wheelPower);
+        rightWheels(-wheelPower);
         runtime.reset();
         while(opModeIsActive() && ((a=getNegAngle()) > -90*quarters-margin)){
             telemetry_.addData("Path", "Turning Right: %2.5f S Elapsed, %2.3f deg", runtime.seconds(), a);
             telemetry_.update();
         }
-        /*leftWheels(0);
-        rightWheels(0);
-        while(opModeIsActive() && runtime.seconds() < 1.5){
-            telemetry_.addData("Path", "Turning Right: %2.5f S Elapsed, %2.3f deg", runtime.seconds(), a);
-            telemetry_.update();
-        }*/
         leftWheels(-wheelPower*0.2);
         rightWheels(wheelPower*0.2);
         while(opModeIsActive() && ((a=getNegAngle()) < -90*quarters-margin)){
@@ -302,10 +395,7 @@ public abstract class AutoOp extends LinearOpMode {
         }
         stopWheels();
         runtime.reset();
-        /*while(opModeIsActive() && runtime.seconds() < 2.0){
-            telemetry_.addData("Path", "Turning Left: %2.3f deg", a);
-            telemetry_.update();
-        }*/
+        zero_heading = (zero_heading - 90.0) % 360.0;
     }
     public void right_time(double quarters){
         leftWheels(wheelPower);
@@ -347,16 +437,36 @@ public abstract class AutoOp extends LinearOpMode {
     public void fingerUp(){
         finger1.setPosition(0.0);
         finger2.setPosition(1.0);
+        runtime.reset();
+        while(opModeIsActive() && runtime.seconds() < 0.4){
+            telemetry_.addData("Path", "Opening Fingers: %2.3f S elapsed", runtime.seconds());
+            telemetry_.update();
+        }
     }
     public void fingerDown(){
         finger1.setPosition(0.9);
         finger2.setPosition(0.1);
+        runtime.reset();
+        while(opModeIsActive() && runtime.seconds() < 0.4){
+            telemetry_.addData("Path", "Closing Fingers: %2.3f S elapsed", runtime.seconds());
+            telemetry_.update();
+        }
     }
     public void openClaw(){
         claw.setPosition(1.0);
+        runtime.reset();
+        while(opModeIsActive() && runtime.seconds() < 0.5){
+            telemetry_.addData("Path", "Opening Claw: %2.3f S elapsed", runtime.seconds());
+            telemetry_.update();
+        }
     }
     public void closeClaw(){
         claw.setPosition(0.3);
+        runtime.reset();
+        while(opModeIsActive() && runtime.seconds() < 0.5){
+            telemetry_.addData("Path", "Closing Claw: %2.3f S elapsed", runtime.seconds());
+            telemetry_.update();
+        }
     }
     public void modelXUp(){
         modelX.setPower(0.5);
