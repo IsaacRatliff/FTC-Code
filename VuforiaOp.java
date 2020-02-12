@@ -36,7 +36,7 @@ public abstract class VuforiaOp extends AutoOp {
         int cameraMonitorViewId = hardwareMap.appContext.getResources().getIdentifier("cameraMonitorViewId", "id", hardwareMap.appContext.getPackageName());
         params = new VuforiaLocalizer.Parameters(cameraMonitorViewId);
         params.vuforiaLicenseKey = VUFORIA_KEY;
-        params.cameraDirection = VuforiaLocalizer.CameraDirection.BACK;
+        params.cameraName = hardwareMap.get(WebcamName.class, "Webcam1");
         localizer = ClassFactory.createVuforiaLocalizer(params);
         visionTargets = localizer.loadTrackablesFromAsset("Skystone");
         target = visionTargets.get(0);
