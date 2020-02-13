@@ -34,6 +34,7 @@ public abstract class AutoOp extends LinearOpMode {
     private Telemetry telemetry_ = null;
     
     private double speed = 0.55*1.4;
+    private double quit_speed = 2.0;
     private double strafe_spd = 1.2;
     private double turn90 = 0.73;//73, 75
     private double armSpd = 0.5;
@@ -149,10 +150,7 @@ public abstract class AutoOp extends LinearOpMode {
     
     /** Encoder-Based Movement **/
     public void move(double y_tiles, double x_tiles, String name){
-        leftfront.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        leftback.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        rightfront.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        rightback.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        resetWheels();
         leftfront.setTargetPosition((int) ((y_tiles+x_tiles)*ticksPerTile));
         leftback.setTargetPosition((int) ((y_tiles-x_tiles)*ticksPerTile));
         rightfront.setTargetPosition((int) ((y_tiles-x_tiles)*ticksPerTile));
@@ -165,7 +163,8 @@ public abstract class AutoOp extends LinearOpMode {
         leftback.setPower(wheelPower);
         rightfront.setPower(wheelPower);
         rightback.setPower(wheelPower);
-        while(opModeIsActive() && (leftfront.isBusy() || rightfront.isBusy() || leftback.isBusy() || rightback.isBusy())){
+        runtime.reset();
+        while(opModeIsActive() && (leftfront.isBusy() || rightfront.isBusy() || leftback.isBusy() || rightback.isBusy()) && runtime.seconds() < Math.sqrt(y_tiles*y_tiles+x_tiles*x_tiles)*quit_speed){
             telemetry_.addData("Path", "%s: %s lf, %s rf, %s lb, %s rb", name, leftfront.getCurrentPosition(), rightfront.getCurrentPosition(), leftback.getCurrentPosition(), rightback.getCurrentPosition());
             telemetry_.update();
         }
@@ -192,6 +191,24 @@ public abstract class AutoOp extends LinearOpMode {
     }
     public void backward_enc(double tiles){
         move(-tiles, 0.0, "Backward");
+    }
+    
+    /** Encoder Utilities **/
+    public void resetWheels(){
+        leftfront.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        leftback.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        rightfront.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        rightback.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+    }
+    public double[] getVector(){
+        double[] offset = new double[2];
+        double lf = leftfront.getCurrentPosition() / ticksPerTile;
+        double lb = leftback.getCurrentPosition() / ticksPerTile;
+        double rf = rightfront.getCurrentPosition() / ticksPerTile;
+        double rb = rightback.getCurrentPosition() / ticksPerTile;
+        offset[0] = (lf + lb + rf + rb) / 4;
+        offset[1] = (lf + lb + rf + rb) / 4;
+        return offset;
     }
     
     /** Gyroscope-Based Rotation **/
@@ -364,7 +381,7 @@ public abstract class AutoOp extends LinearOpMode {
         }
     }
     public void fingerDown(){
-        finger1.setPosition(0.9);
+        finger1.setPosition(0.85);
         finger2.setPosition(0.1);
         runtime.reset();
         while(opModeIsActive() && runtime.seconds() < 0.4){
