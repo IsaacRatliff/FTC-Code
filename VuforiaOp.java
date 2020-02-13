@@ -1,6 +1,7 @@
 package workspace;
 
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
+import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 import org.firstinspires.ftc.robotcore.external.matrices.VectorF;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import org.firstinspires.ftc.robotcore.external.navigation.VuforiaLocalizer;
@@ -36,7 +37,8 @@ public abstract class VuforiaOp extends AutoOp {
         int cameraMonitorViewId = hardwareMap.appContext.getResources().getIdentifier("cameraMonitorViewId", "id", hardwareMap.appContext.getPackageName());
         params = new VuforiaLocalizer.Parameters(cameraMonitorViewId);
         params.vuforiaLicenseKey = VUFORIA_KEY;
-        params.cameraName = hardwareMap.get(WebcamName.class, "Webcam1");
+        //params.cameraName = hardwareMap.get(WebcamName.class, "Webcam 1");
+        params.cameraDirection = VuforiaLocalizer.CameraDirection.BACK;
         localizer = ClassFactory.createVuforiaLocalizer(params);
         visionTargets = localizer.loadTrackablesFromAsset("Skystone");
         target = visionTargets.get(0);
@@ -56,11 +58,11 @@ public abstract class VuforiaOp extends AutoOp {
         visionTargets.activate();
     }
     
-    public OpenGLMatrix createMatrix(float x, float y, float z, float u, float v, float w){
+    /*public OpenGLMatrix createMatrix(float x, float y, float z, float u, float v, float w){
         return OpenGLMatrix.translation(x, y, z)
             .multiplied(Orientation.getRotationMatrix(
                 AxesReference.EXTRINSIC, AxesOrder.XYZ, AngleUnit.DEGREES, u, v, w));
-    }
+    }*/
     
     public void calcOffset(){
         OpenGLMatrix pose = listener.getPose();
@@ -78,6 +80,7 @@ public abstract class VuforiaOp extends AutoOp {
     }
     
     public void toSkystone(double threshold, double nullspd, double factor){
+        resetWheels();
         while(opModeIsActive() && (raw_offset == null || red_off < -threshold || red_off > threshold)){
             telemetry.addData("Path", "seeking skystone");
             calcOffset();
