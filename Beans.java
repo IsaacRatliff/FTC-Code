@@ -49,7 +49,7 @@ import com.qualcomm.robotcore.hardware.Servo;
 
 public class Beans extends LinearOpMode {
 
-    // Declare OpMode members.
+    // Declare OpMode members
     private ElapsedTime runtime = new ElapsedTime();
     private DcMotor leftDrive_0 = null;
     private DcMotor rightDrive_0 = null;
@@ -57,13 +57,12 @@ public class Beans extends LinearOpMode {
     private DcMotor rightDrive_1 = null;
     private DcMotor arm = null;
     private DcMotor modelX = null;
-    private DcMotor hand1 = null;
-    private DcMotor hand2 = null;
+    private DcMotor tape = null;
     private Servo claw = null;
     private Servo finger1 = null;
     private Servo finger2 = null;
         
-    //Gyro Testing Stuff
+    // Gyro Testing
     protected BNO055IMU imu = null;
     private double zero_heading = 0.0;
     private double zero_y = 0.0;
@@ -71,7 +70,6 @@ public class Beans extends LinearOpMode {
 
     @Override
     public void runOpMode() {
-        double mod = 1.0;
         telemetry.addData("Status", "Beans has been initialized");
         telemetry.update();
 
@@ -85,11 +83,9 @@ public class Beans extends LinearOpMode {
         modelX = hardwareMap.get(DcMotor.class, "ModelX");
         finger1 = hardwareMap.get(Servo.class, "finger1");
         finger2 = hardwareMap.get(Servo.class, "finger2");
-        hand1 = hardwareMap.get(DcMotor.class, "hand1");
-        hand2 = hardwareMap.get(DcMotor.class, "hand2");
+        tape = hardwareMap.get(DcMotor.class, "tape");
         arm = hardwareMap.get(DcMotor.class, "arm");
         claw = hardwareMap.get(Servo.class, "claw");
-            
         
         // Most robots need the motor on one side to be reversed to drive forward
         // Reverse the motor that runs backwards when connected directly to the battery
@@ -98,38 +94,28 @@ public class Beans extends LinearOpMode {
         leftDrive_1.setDirection(DcMotor.Direction.REVERSE);
         rightDrive_1.setDirection(DcMotor.Direction.FORWARD);
         modelX.setDirection(DcMotor.Direction.FORWARD);
-        hand1.setDirection(DcMotor.Direction.FORWARD);
-        hand2.setDirection(DcMotor.Direction.REVERSE);
+        tape.setDirection(DcMotor.Direction.FORWARD);
+        arm.setDirection(DcMotor.Direction.FORWARD);
         
-        
+        // Reset Encoders
         leftDrive_0.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         leftDrive_1.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         rightDrive_0.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         rightDrive_1.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         
+        // Set motors with encoders to run at constant speed
         leftDrive_0.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         leftDrive_1.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         rightDrive_0.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         rightDrive_1.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         
-        arm.setDirection(DcMotor.Direction.FORWARD);
-        claw.setPosition(1.0);
-        double servoPosition = 0.0;
         // Setup a variable for each drive wheel to save power level for telemetry
-        double leftPower;
-        double rightPower;
+        double leftPower, rightPower, strafe, vbrake; // wheel speed modifiers
+        double mod = 1.0; // overall wheel speed modifier
+        double targetLF, targetLB, targetRF, targetRB; // target wheel speeds
+        double actLF=0.0, actLB=0.0, actRF=0.0, actRB=0.0;  // current wheel speeds
+        double delta = 0.3; // acceleration
         double armPower;
-        double strafe = 0.0;
-        double vbrake;
-        double actLF = 0.0;
-        double actLB = 0.0;
-        double actRF = 0.0;
-        double actRB = 0.0;
-        double delta = 0.3;
-        double targetLF, targetLB, targetRF, targetRB;
-        double finger_rear = 0.0;
-        double finger_rear_static = 0.0;
-        double claw_pos = 1.0;
         boolean claw_pressing = false;
         
         //Gyro Config
@@ -145,6 +131,11 @@ public class Beans extends LinearOpMode {
         zero_heading = angles.firstAngle;
         zeroHeading();
         
+        // Initialize Servos
+        claw.setPosition(0.9);
+        finger1.setPosition(0.0);
+        finger2.setPosition(1.0);
+        
         // Wait for the game to start (driver presses PLAY)
         waitForStart();
         runtime.reset();
@@ -152,7 +143,7 @@ public class Beans extends LinearOpMode {
         // run until the end of the match (driver presses STOP)
         while (opModeIsActive()) {
             
-            // Tank Mode uses one stick to control each wheel.
+            // Get movement commands
             leftPower  = -gamepad1.left_stick_y;
             rightPower = -gamepad1.right_stick_y;
             if(gamepad1.dpad_right)
@@ -166,7 +157,8 @@ public class Beans extends LinearOpMode {
             else{
                 strafe = -gamepad1.left_stick_x - gamepad1.right_stick_x;
             }
-            // Conditional statement to allow for more percise and slow movement.
+            
+            // Get speed modifiers
             if(gamepad1.right_bumper) 
             {
                 leftPower = leftPower*0.5;
@@ -174,17 +166,16 @@ public class Beans extends LinearOpMode {
                 strafe = strafe*0.5;
             }
             else{
-                leftPower *= 1.0;
-                rightPower *= 1.0;
-                strafe *= 1.0;
+                leftPower *= mod;
+                rightPower *= mod;
+                strafe *= mod;
             }
-            
             vbrake = 1.0 - gamepad1.right_trigger;
             leftPower *= vbrake;
             rightPower *= vbrake;
-            
             telemetry.addData("Braking", "Braking at: (%2.0f) %%", (vbrake*100));
             
+            // Calculate target and actual wheel speeds
             targetLF = leftPower - strafe;
             if(actLF < targetLF - delta){
                 actLF += delta;
@@ -215,7 +206,7 @@ public class Beans extends LinearOpMode {
             else{
                 actRF = targetRF;
             }
-            targetRB = (rightPower - strafe)*0.7;
+            targetRB = (rightPower - strafe);
             if(actRB < targetRB - delta){
                 actRB += delta;
             }
@@ -234,9 +225,8 @@ public class Beans extends LinearOpMode {
 
             // Show the elapsed game time and wheel power.
             telemetry.addData("Status", "Run Time: " + runtime.toString());
-            telemetry.addData("Motors", "left (%.2f), right (%.2f)", leftPower, rightPower);
+            telemetry.addData("Motors", "left (%.2f), right (%.2f), mod (%.2f)", leftPower, rightPower, mod);
             telemetry.addData("Heading", "Z %2.3f, Y %2.3f", getAngle(), (angles.secondAngle-zero_y+360)%360.0);
-            telemetry.update();
             
             if(gamepad1.left_bumper){
                 finger1.setPosition(0.0);
@@ -246,20 +236,20 @@ public class Beans extends LinearOpMode {
                 finger1.setPosition(0.9);
                 finger2.setPosition(0.1);
             }
+            else if(gamepad1.x){
+                finger1.setPosition(0.7);
+                finger2.setPosition(0.3);
+            }
             telemetry.addData("Fingers (Front)", "finger1 (%.2f), finger2 (%.2f)", finger1.getPosition(), finger2.getPosition());
             
-            finger_rear = 0.2*gamepad2.left_trigger * (gamepad2.left_bumper?-1.0:1.0) + finger_rear_static;
-            if(gamepad2.left_bumper && gamepad2.left_trigger > 0.0){
-                finger_rear_static = -0.1;
+            if(gamepad2.left_bumper){
+                tape.setPower(-0.25);
             }
-            else if(gamepad2.left_trigger > 0.0){
-                finger_rear_static = 0.0;
+            else{
+                tape.setPower(gamepad2.left_trigger*0.25);
             }
-            hand1.setPower(finger_rear);
-            hand2.setPower(finger_rear);
-            telemetry.addData("Fingers (Rear)", "power: %.2f, static: %.2f", finger_rear, finger_rear_static);
             
-            arm.setPower(gamepad2.right_stick_y*0.4-0.12);
+            arm.setPower(-gamepad2.right_stick_y*0.32+0.15);
             telemetry.addData("Arm", "Arm %.2f", -gamepad2.right_stick_y);
             
             if(gamepad2.y){
@@ -273,15 +263,14 @@ public class Beans extends LinearOpMode {
             }
             
             if(gamepad2.right_bumper && !claw_pressing){
-                claw_pos = claw_pos>0.5 ? 0.3 : 0.9;
+                claw.setPosition(claw.getPosition()>0.5 ? 0.1 : 0.9);
                 claw_pressing = true;
             } else if(!gamepad2.right_bumper && claw_pressing) {
                 claw_pressing = false;
             }
-            claw.setPosition(claw_pos);
             telemetry.addData("LMotors0", leftDrive_0.getCurrentPosition());
             telemetry.addData("Servos", "claw (%.2f)", claw.getPosition());
-            
+            telemetry.update();
         }
     }
     
@@ -295,4 +284,6 @@ public class Beans extends LinearOpMode {
         zero_heading  = angles.firstAngle;
         zero_y = angles.secondAngle;
     }
-}
+}    
+
+
