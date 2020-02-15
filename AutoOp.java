@@ -42,7 +42,7 @@ public abstract class AutoOp extends LinearOpMode {
     private double armStatic = 0.3;
     protected double wheelPower = 0.8;
     private double margin = 1;
-    private double ticksPerTile = 1120/4/3.141592653589793238462643383279502884*24*(4.0/3.0); // 1120 ticks/rev * 1/4pi rev/in * 24 in/tile * gear_ratio
+    private double ticksPerTile = 1120/4/3.141592653589793238462643383279502884*24*1.0; // 1120 ticks/rev * 1/4pi rev/in * 24 in/tile * gear_ratio
     private double turningCorrection = 0.001;
     
     /** Initialization **/
@@ -315,6 +315,7 @@ public abstract class AutoOp extends LinearOpMode {
         }
         stopWheels();
     }
+    @Deprecated
     public void right_time(double quarters){
         leftWheels(wheelPower);
         rightWheels(-wheelPower);
