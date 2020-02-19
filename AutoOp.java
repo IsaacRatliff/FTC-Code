@@ -27,7 +27,7 @@ public abstract class AutoOp extends LinearOpMode {
     protected Servo claw = null;
     
     protected BNO055IMU imu = null;
-    private double zero_heading = 0.0;
+    protected double zero_heading = 0.0;
     private Orientation angles = null;
     
     private ElapsedTime runtime = new ElapsedTime();
@@ -37,12 +37,12 @@ public abstract class AutoOp extends LinearOpMode {
     private double quit_speed = 2.0;
     private double strafe_spd = 1.2;
     private double turn90 = 0.73;//73, 75
-    private double armSpd = 0.5;
-    private double armPower = 0.25;
-    private double armStatic = 0.3;
+    private double armSpd = 1.0;
+    private double armPower = 0.32;
+    private double armStatic = 0.15;
     protected double wheelPower = 0.8;
     private double margin = 1;
-    private double ticksPerTile = 1120/4/3.141592653589793238462643383279502884*24*1.0; // 1120 ticks/rev * 1/4pi rev/in * 24 in/tile * gear_ratio
+    private double ticksPerTile = 1120/4/Math.PI*24*1.0; // 1120 ticks/rev * 1/4pi rev/in * 24 in/tile * gear_ratio
     private double turningCorrection = 0.001;
     
     /** Initialization **/
@@ -62,7 +62,7 @@ public abstract class AutoOp extends LinearOpMode {
         telemetry_ = telemetry;
         if(has_arm){
             arm = hardwareMap.get(DcMotor.class, "arm");
-            arm.setDirection(DcMotor.Direction.REVERSE);
+            arm.setDirection(DcMotor.Direction.FORWARD);
         }
         if(has_claw){
             claw = hardwareMap.get(Servo.class, "claw");
@@ -376,22 +376,22 @@ public abstract class AutoOp extends LinearOpMode {
         finger1.setPosition(0.0);
         finger2.setPosition(1.0);
         runtime.reset();
-        while(opModeIsActive() && runtime.seconds() < 0.4){
+        while(opModeIsActive() && runtime.seconds() < 0.8){
             telemetry_.addData("Path", "Opening Fingers: %2.3f S elapsed", runtime.seconds());
             telemetry_.update();
         }
     }
     public void fingerDown(){
-        finger1.setPosition(0.85);
+        finger1.setPosition(0.9);
         finger2.setPosition(0.1);
         runtime.reset();
-        while(opModeIsActive() && runtime.seconds() < 0.4){
+        while(opModeIsActive() && runtime.seconds() < 0.8){
             telemetry_.addData("Path", "Closing Fingers: %2.3f S elapsed", runtime.seconds());
             telemetry_.update();
         }
     }
     public void openClaw(){
-        claw.setPosition(1.0);
+        claw.setPosition(0.0);
         runtime.reset();
         while(opModeIsActive() && runtime.seconds() < 0.5){
             telemetry_.addData("Path", "Opening Claw: %2.3f S elapsed", runtime.seconds());
@@ -399,7 +399,7 @@ public abstract class AutoOp extends LinearOpMode {
         }
     }
     public void closeClaw(){
-        claw.setPosition(0.3);
+        claw.setPosition(0.58);
         runtime.reset();
         while(opModeIsActive() && runtime.seconds() < 0.5){
             telemetry_.addData("Path", "Closing Claw: %2.3f S elapsed", runtime.seconds());
