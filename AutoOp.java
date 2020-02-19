@@ -258,6 +258,24 @@ public abstract class AutoOp extends LinearOpMode {
         runtime.reset();
         zero_heading = (zero_heading - 90.0) % 360.0;
     }
+    public void turnZero(double margin, String name){
+        double a = getSmAngle();
+        runtime.reset();
+        while(Math.abs(a) > margin){
+            leftWheels(-a*0.005);
+            rightWheels(a*0.005);
+            telemetry_.addData("Path", "%s: %2.5f S Elapsed, %2.3", name, a, runtime.seconds());
+            telemetry_.update();
+            a = getSmAngle();
+        }
+        stopWheels();
+    }
+    public void turnZero(double margin){
+        turnZero(margin, "Turning");
+    }
+    public void turnZero(){
+        turnZero(5.0);
+    }
     
     /** Time-Based Movement (Backwards-Compatibility) **/
     @Deprecated
