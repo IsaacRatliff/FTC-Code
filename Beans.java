@@ -132,8 +132,8 @@ public class Beans extends LinearOpMode {
         zeroHeading();
         
         // Initialize Servos
-        claw.setPosition(0.9);
-        finger1.setPosition(0.0);
+        claw.setPosition(0.0);
+        finger1.setPosition(0.0);  // open
         finger2.setPosition(1.0);
         
         // Wait for the game to start (driver presses PLAY)
@@ -218,9 +218,9 @@ public class Beans extends LinearOpMode {
             }
             
             // Send calculated power to wheels
-            leftDrive_0.setPower(actLF);
+            leftDrive_0.setPower(actLF*2);
             rightDrive_0.setPower(actRF);
-            leftDrive_1.setPower(actLB);
+            leftDrive_1.setPower(actLB*2);
             rightDrive_1.setPower(actRB);
 
             // Show the elapsed game time and wheel power.
@@ -238,35 +238,44 @@ public class Beans extends LinearOpMode {
             }
             else if(gamepad1.x){
                 finger1.setPosition(0.7);
-                finger2.setPosition(0.3);
+                finger2.setPosition(0.35);
             }
             telemetry.addData("Fingers (Front)", "finger1 (%.2f), finger2 (%.2f)", finger1.getPosition(), finger2.getPosition());
             
             if(gamepad2.left_bumper){
                 tape.setPower(-0.25);
             }
+            else if(gamepad2.x){
+                tape.setPower(-1.0);
+            }
             else{
-                tape.setPower(gamepad2.left_trigger*0.25);
+                tape.setPower(gamepad2.left_trigger*0.3);
             }
             
             arm.setPower(-gamepad2.right_stick_y*0.32+0.15);
             telemetry.addData("Arm", "Arm %.2f", -gamepad2.right_stick_y);
             
-            if(gamepad2.y){
+            if(gamepad2.y/* && ((runtime.seconds() > 90.0) || gamepad1.b)*/){
                 modelX.setPower(0.2);
             }
-            else if(gamepad2.a){
+            else if(gamepad2.a/* && ((runtime.seconds() > 90.0) || gamepad1.b)*/){
                 modelX.setPower(-0.2);
             }
             else{
                 modelX.setPower(0.0);
             }
             
-            if(gamepad2.right_bumper && !claw_pressing){
-                claw.setPosition(claw.getPosition()>0.5 ? 0.1 : 0.9);
+            /*if(gamepad2.right_bumper && !claw_pressing){
+                claw.setPosition(claw.getPosition()>0.5 ? 0.58 : 0.0);
                 claw_pressing = true;
             } else if(!gamepad2.right_bumper && claw_pressing) {
                 claw_pressing = false;
+            }*/
+            if(gamepad2.right_bumper){
+                claw.setPosition(0.0);
+            }
+            else if(gamepad2.right_trigger > 0.0){
+                claw.setPosition(0.58);
             }
             telemetry.addData("LMotors0", leftDrive_0.getCurrentPosition());
             telemetry.addData("Servos", "claw (%.2f)", claw.getPosition());
@@ -284,6 +293,4 @@ public class Beans extends LinearOpMode {
         zero_heading  = angles.firstAngle;
         zero_y = angles.secondAngle;
     }
-}    
-
-
+}
