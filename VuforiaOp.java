@@ -83,7 +83,8 @@ public abstract class VuforiaOp extends AutoOp {
         raw_offset = off;
     }
     
-    public void toSkystone(double threshold, double nullspd, double factor){
+    public double toSkystone(double threshold, double nullspd, double factor){
+        double startOffset = getVector()[1]
         while(opModeIsActive() && (raw_offset == null || red_off < -threshold || red_off > threshold)){
             telemetry.addData("Path", "seeking skystone");
             calcOffset();
@@ -97,15 +98,16 @@ public abstract class VuforiaOp extends AutoOp {
             }
             telemetry.update();
         }
+        return getVector()[1] - startOffset;
     }
-    public void toSkystone(double threshold, double nullspd){
-        toSkystone(threshold, nullspd, 1000.0);
+    public double toSkystone(double threshold, double nullspd){
+        return toSkystone(threshold, nullspd, 1000.0);
     }
-    public void toSkystone(double threshold){
-        toSkystone(threshold, 0.1);
+    public double toSkystone(double threshold){
+        return toSkystone(threshold, 0.1);
     }
-    public void toSkystone(){
-        toSkystone(10.0);
+    public double toSkystone(){
+        return toSkystone(10.0);
     }
     
     public void setCameraPosition(double horiz, double depth, double height){
