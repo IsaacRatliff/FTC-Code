@@ -155,10 +155,7 @@ public abstract class AutoOp extends LinearOpMode {
         leftback.setTargetPosition((int) ((y_tiles-x_tiles)*ticksPerTile));
         rightfront.setTargetPosition((int) ((y_tiles-x_tiles)*ticksPerTile));
         rightback.setTargetPosition((int) ((y_tiles+x_tiles)*ticksPerTile));
-        leftfront.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-        leftback.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-        rightfront.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-        rightback.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        setWheelMode(DcMotor.RunMode.RUN_TO_POSITION);
         leftfront.setPower(wheelPower);
         leftback.setPower(wheelPower);
         rightfront.setPower(wheelPower);
@@ -194,11 +191,14 @@ public abstract class AutoOp extends LinearOpMode {
     }
     
     /** Encoder Utilities **/
+    public void setWheelMode(DcMotor.RunMode mode){
+        leftfront.setMode(mode);
+        leftback.setMode(mode);
+        rightfront.setMode(mode);
+        rightback.setMode(mode);
+    }
     public void resetWheels(){
-        leftfront.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        leftback.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        rightfront.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        rightback.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        setWheelMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
     }
     public double[] getVector(){
         double[] offset = new double[2];
