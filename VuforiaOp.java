@@ -54,7 +54,7 @@ public abstract class VuforiaOp extends AutoOp {
         red_off = 0;
         blue_off = 0;
         raw_offset = null;
-        setPhonePosition(0, 0, 0);
+        setCameraPosition(0, 0, 0);
     }
     
     public void activateVision(){
@@ -84,7 +84,7 @@ public abstract class VuforiaOp extends AutoOp {
     }
     
     public double toSkystone(double threshold, double nullspd, double factor){
-        double startOffset = getVector()[1]
+        double startOffset = getVector()[1];
         while(opModeIsActive() && (raw_offset == null || red_off < -threshold || red_off > threshold)){
             telemetry.addData("Path", "seeking skystone");
             calcOffset();
@@ -108,6 +108,22 @@ public abstract class VuforiaOp extends AutoOp {
     }
     public double toSkystone(){
         return toSkystone(10.0);
+    }
+    
+    public void scanSkystones(){
+        turnRightSpd(0.2);
+        while(opModeIsActive() && raw_offset == null && Math.abs(getSmAngle()) < 30){
+            calcOffset();
+            telemetry_.addData("Path", "Seeking Skystone");
+            telemetry_.update();
+        }
+        turnLeftSpd(0.2);
+        while(opModeIsActive() && raw_offset == null && Math.abs(getSmAngle()) < 30){
+            calcOffset();
+            telemetry_.addData("Path", "Seeking Skystone");
+            telemetry_.update();
+        }
+        turnZero();
     }
     
     public void setCameraPosition(double horiz, double depth, double height){
