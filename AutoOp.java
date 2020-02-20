@@ -207,7 +207,7 @@ public abstract class AutoOp extends LinearOpMode {
         double rf = rightfront.getCurrentPosition() / ticksPerTile;
         double rb = rightback.getCurrentPosition() / ticksPerTile;
         offset[0] = (lf + lb + rf + rb) / 4;
-        offset[1] = (lf + lb + rf + rb) / 4;
+        offset[1] = (lf - lb - rf + rb) / 4;
         return offset;
     }
     
