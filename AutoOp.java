@@ -30,8 +30,8 @@ public abstract class AutoOp extends LinearOpMode {
     protected double zero_heading = 0.0;
     private Orientation angles = null;
     
-    private ElapsedTime runtime = new ElapsedTime();
-    private Telemetry telemetry_ = null;
+    protected ElapsedTime runtime = new ElapsedTime();
+    protected Telemetry telemetry_ = null;
     
     private double speed = 0.55*1.4;
     private double quit_speed = 2.0;
