@@ -84,21 +84,40 @@ public abstract class VuforiaOp extends AutoOp {
     }
     
     public double toSkystone(double threshold, double nullspd, double factor){
-        double startOffset = getVector()[1];
-        while(opModeIsActive() && (raw_offset == null || red_off < -threshold || red_off > threshold)){
+        double dist = 0;
+        int dir = nullspd > 0 ? 1 : -1;
+        armUp(0.5);
+        wheelPower = 0.5;
+        for(short i=0;i<3;i++){
             telemetry.addData("Path", "seeking skystone");
-            calcOffset();
-            if(raw_offset == null){
-                strafeRightSpd(nullspd);
-                telemetry.addData("Skystone", "missing");
-            }
-            else{
-                strafeLeftSpd(red_off/factor);
-                telemetry.addData("Skystone", "%.0f", red_off);
-            }
             telemetry.update();
+            pause(0.75);
+            //turnZero(1.0);
+            calcOffset();
+            if(raw_offset != null || !opModeIsActive()){
+                break;
+            }
+            strafeRight(0.2 * dir);
+            dist += 0.2 * dir;
         }
-        return getVector()[1] - startOffset;
+        if(raw_offset == null){
+            forward(0.2);
+            strafeRight(0.15 * dir);
+        }
+        double startOffset = getVector()[1];
+        while(opModeIsActive() && Math.abs(red_off) > threshold && raw_offset != null){
+            telemetry.addData("Path", "seeking skystone");
+            telemetry.addData("Skystone", "%.0f, threshold %.0f", red_off, threshold);
+            telemetry.update();
+            strafeLeftSpd(red_off/factor);
+            calcOffset();
+        }
+        //turnZero(1);
+        armDown(0.5);
+        //turnZero(1.0);
+        dist += getVector()[1] - startOffset;
+        wheelPower = 1.0;
+        return dist;
     }
     public double toSkystone(double threshold, double nullspd){
         return toSkystone(threshold, nullspd, 1000.0);
