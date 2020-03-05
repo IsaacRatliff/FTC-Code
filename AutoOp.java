@@ -262,8 +262,8 @@ public abstract class AutoOp extends LinearOpMode {
         double a = getSmAngle();
         runtime.reset();
         while(Math.abs(a) > margin){
-            leftWheels(-a*0.005);
-            rightWheels(a*0.005);
+            leftWheels(a*0.005);
+            rightWheels(-a*0.005);
             telemetry_.addData("Path", "%s: %2.5f S Elapsed, %2.3", name, a, runtime.seconds());
             telemetry_.update();
             a = getSmAngle();
